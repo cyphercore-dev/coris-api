@@ -5,6 +5,7 @@ import { FetchService } from '../services/http/fetch.service';
 import { RedisService } from '../services/redis/redis.service';
 import { ScheduleModule } from 'nest-schedule';
 import { ScheduleService } from '../services/schedule/schedule.service';
+import { InitService } from '../services/init/init.service';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { ScheduleService } from '../services/schedule/schedule.service';
     ValidatorsService,
     FetchService,
     RedisService,
-    ScheduleService
+    ScheduleService,
+    InitService
   ]
 })
 export class AppModule {}
