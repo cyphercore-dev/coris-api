@@ -3,6 +3,7 @@ import { map, catchError } from 'rxjs/operators';
 import { range, BehaviorSubject, of } from 'rxjs';
 import { FetchService } from '../http/fetch.service';
 import { RedisService } from '../redis/redis.service';
+import Queue from 'bull';
 
 @Injectable()
 export class ValidatorsService {
@@ -14,30 +15,41 @@ export class ValidatorsService {
   constructor(
     private fetchService: FetchService,
     private redisService: RedisService
-  ) {
-
+  ) { 
     console.log("VALIDATORS SERVICE STARTED!");
+
+    let validatorsServiceQueue = new Queue('Validators Service Que');
+
+    validatorsServiceQueue.process(function(job){
+      job;
+      console.log('VALIDATORS SERVICE WAS RESCHEDULED!');
+    });  
+
+    validatorsServiceQueue.add(
+      this.initValidators(), 
+      {repeat: {cron: '*/5 * * * *'}}
+    );
 
     this.getValidatorsStore$().subscribe((newValidators: any[]) => {
       if(newValidators.length > 0) {
-        console.log(newValidators);
+        // console.log(newValidators);
         this.setValidatorsBlob(newValidators); 
       }
     });
   }
 
-  getValidatorsBlob() {
+  public getValidatorsBlob() {
     return this.redisService.getRedisInstance().get("validators_blob");
   }
 
-  setValidatorsBlob(validators: any) {
+  public setValidatorsBlob(validators: any) {
     return this.redisService.getRedisInstance().set("validators_blob", JSON.stringify(validators));
   }
 
-  async precacheAddresses() {
+  private async precacheAddresses() {
     return new Promise ((resolve) => {
 
-      this.getValidatorsDetails()
+      this.getStakingValidators()
         .then( (validators:any[]) => {
           let addresses = [];
           for(let validator of validators) {
@@ -68,12 +80,12 @@ export class ValidatorsService {
   }
 
 
-  async initValidators() { 
+  private async initValidators() { 
     let result = <[]>(await this.precacheAddresses());
     console.log(`UPDATING VALIDATORS STATE! *** ${new Date()} ***`);
 
     for(let address of result) {
-      let currentValidator = await this.getValidatorDetails(address)
+      let currentValidator = await this.getStakingValidator(address)
       if(currentValidator) {
         this.validatorsStore.push(currentValidator);
       }
@@ -99,7 +111,7 @@ export class ValidatorsService {
   }
 
 
-  getValidatorsDetails() {
+  public getStakingValidators() {
     return new Promise(resolve => {
       this.fetchService.getHttpClient()
         .get(`/staking/validators`)
@@ -116,7 +128,7 @@ export class ValidatorsService {
   }
 
 
-  getValidatorDetails(address) {
+  public getStakingValidator(address) {
     return new Promise(resolve => {
       this.fetchService.getHttpClient()
         .get(`/staking/validators/${address}`)
@@ -135,7 +147,7 @@ export class ValidatorsService {
   }
 
 
-  getValidatorSignInfo(validator) {
+  public getValidatorSignInfo(validator) {
     return new Promise(resolve => {
       this.fetchService.getHttpClient().get(`/slashing/validators/${validator.consensus_pubkey}/signing_info`).pipe( map(res => res.data))
         .subscribe(data => {
@@ -147,7 +159,7 @@ export class ValidatorsService {
     });
   }
 
-  getValidatorDistribution(validator:any) {
+  public getValidatorDistribution(validator:any) {
     return new Promise(resolve => {
       this.fetchService.getHttpClient().get(`/distribution/validators/${validator.operator_address}`).pipe( map(res => res.data))
         .subscribe(
@@ -184,7 +196,7 @@ export class ValidatorsService {
   // TODO @aakatev 
   // Seems like rewards and outstanding rewards are messed up in rpc
   // Keep an eye to see if they fix it
-  getValidatorRewards(validator) {
+  public getValidatorRewards(validator) {
     return new Promise(resolve => {
       this.fetchService.getHttpClient().get(`/distribution/validators/${validator.operator_address}/rewards`).pipe( map(res => res.data))
         .subscribe(
@@ -204,7 +216,7 @@ export class ValidatorsService {
     });
   }
 
-  getValidatorOutstandingRewards(validator) {
+  public getValidatorOutstandingRewards(validator) {
     return new Promise(resolve => {
       this.fetchService.getHttpClient().get(`/distribution/validators/${validator.operator_address}/outstanding_rewards`).pipe( map(res => res.data))
         .subscribe(
@@ -224,7 +236,7 @@ export class ValidatorsService {
     });
   }
 
-  getValidatorUnbondDelegations(validator) {
+  public getValidatorUnbondDelegations(validator) {
     validator.unbonding_total = 0;
     return new Promise(resolve => {
       this.fetchService.getHttpClient().get(`/staking/validators/${validator.operator_address}/unbonding_delegations`).pipe( map(res => res.data))
@@ -246,7 +258,7 @@ export class ValidatorsService {
     });
   }
 
-  triggerDelegations() {
+  public triggerDelegations() {
     let validatorsPromises = [];
 
     for (let i = 0; i < this.validatorsStore.length; i++) {
@@ -260,7 +272,7 @@ export class ValidatorsService {
     });
   };
 
-  initDelegations(validator) {
+  public initDelegations(validator) {
     return new Promise (resolve => {
       this.getValidatorDelegations(validator.operator_address)
       .subscribe((data: any) => {
@@ -268,7 +280,7 @@ export class ValidatorsService {
         validator.delegations = data;
       },
       (error) => {
-        console.log(error);
+        // console.log(error);
         validator.delegations = [];
         resolve();
       },
@@ -281,7 +293,7 @@ export class ValidatorsService {
     });
   }
 
-  calculateSelfBond(validator) {
+  private calculateSelfBond(validator) {
     let delegations = validator.delegations;
     validator.self_bond = 0;
 
@@ -298,7 +310,10 @@ export class ValidatorsService {
     () => { });
   }
 
-  getValidatorDelegations(address) {
-    return this.fetchService.getHttpClient().get(`/staking/validators/${address}/delegations`).pipe(map(res => res.data));
+  public getValidatorDelegations(address) {
+    return this.fetchService
+                .getHttpClient()
+                .get(`/staking/validators/${address}/delegations`)
+                .pipe(map(res => res.data));
   }
 }

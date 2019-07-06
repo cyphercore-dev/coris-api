@@ -4,9 +4,7 @@ import { Response } from 'express';
 
 @Controller('validators')
 export class AppController {
-  constructor(
-    private readonly validatorsService: ValidatorsService,
-  ) { }
+  constructor( private readonly validatorsService: ValidatorsService ) { }
 
   @Get()
   index(@Res() res: Response) {

@@ -1,18 +1,30 @@
 import { Injectable, HttpService, OnModuleInit } from '@nestjs/common';
 import * as http from 'http';
+import * as Agent from 'agentkeepalive';
 import Axios, { AxiosInstance } from 'axios';
 import { GAIA_REST_URI } from './fetch.config.json';
 
 @Injectable()
 export class FetchService implements OnModuleInit {
-  private httpAgent: http.Agent = new http.Agent({ maxSockets: 6, keepAlive: true });
-  private axiosInstance: AxiosInstance = Axios.create({
-    baseURL: GAIA_REST_URI,
-    httpAgent: this.httpAgent,
-  });
-  private httpClient: HttpService = new HttpService(this.axiosInstance);
+  private httpAgent: http.Agent;
+  private axiosInstance: AxiosInstance;
+  private httpClient: HttpService;
 
-  constructor() { }
+  constructor() {
+    this.httpAgent = new Agent.default({
+      maxSockets: 20,
+      maxFreeSockets: 15,
+      timeout: 60000, // active socket keepalive for 60 seconds
+      freeSocketTimeout: 30000, // free socket keepalive for 30 seconds
+    });
+
+    this.axiosInstance = Axios.create({
+      baseURL: GAIA_REST_URI,
+      httpAgent: this.httpAgent,
+    });
+
+    this.httpClient = new HttpService(this.axiosInstance);
+  }
 
   onModuleInit() {
     // this.debugInterceptors();
