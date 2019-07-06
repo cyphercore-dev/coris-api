@@ -3,12 +3,5 @@ services:
   node:
     image: typescript-image
     build: .
-    ports:
-      - 3000:3000
     network_mode: host
-  redis:
-    image: redis:alpine
-    command: redis-server
-    volumes:
-    - ./data:/data
-    network_mode: host
+
