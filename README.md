@@ -10,11 +10,6 @@
 
 - Utilizes Express as API, and Redis as storage solution.  
 
-Other major dependencies:
-
-- [nest-schedule](https://www.npmjs.com/package/nest-schedule) - Scheduling
-
-
 ### Running
 
 Prerequisites are docker and docker-compose. In repo root directory, run <code>docker-compose up</code>. This will launch node and redis in the same container.  Endpoint for queueng current validators is <code>http://localhost:3000/validators</code>.

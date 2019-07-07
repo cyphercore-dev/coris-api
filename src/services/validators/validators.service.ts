@@ -3,13 +3,11 @@ import { map, catchError } from 'rxjs/operators';
 import { range, BehaviorSubject, of } from 'rxjs';
 import { FetchService } from '../http/fetch.service';
 import { RedisService } from '../redis/redis.service';
-import Queue from 'bull';
-
 @Injectable()
 export class ValidatorsService {
   validatorsStore = [];
   validatorsStore$ = new BehaviorSubject([]);
-  
+
   public getValidatorsStore$() { return this.validatorsStore$ }
 
   constructor(
@@ -17,23 +15,15 @@ export class ValidatorsService {
     private redisService: RedisService
   ) { 
     console.log("VALIDATORS SERVICE STARTED!");
-
-    let validatorsServiceQueue = new Queue('Validators Service Que');
-
-    validatorsServiceQueue.process(function(job){
-      job;
-      console.log('VALIDATORS SERVICE WAS RESCHEDULED!');
-    });  
-
-    validatorsServiceQueue.add(
-      this.initValidators(), 
-      {repeat: {cron: '*/5 * * * *'}}
-    );
+    this.initValidators();
 
     this.getValidatorsStore$().subscribe((newValidators: any[]) => {
       if(newValidators.length > 0) {
         // console.log(newValidators);
         this.setValidatorsBlob(newValidators); 
+
+        console.log('Job was done!');
+        this.initValidators();
       }
     });
   }

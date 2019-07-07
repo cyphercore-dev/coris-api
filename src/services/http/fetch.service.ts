@@ -12,7 +12,7 @@ export class FetchService implements OnModuleInit {
 
   constructor() {
     this.httpAgent = new Agent.default({
-      maxSockets: 20,
+      maxSockets: 15,
       maxFreeSockets: 15,
       timeout: 60000, // active socket keepalive for 60 seconds
       freeSocketTimeout: 30000, // free socket keepalive for 30 seconds
@@ -22,6 +22,16 @@ export class FetchService implements OnModuleInit {
       baseURL: GAIA_REST_URI,
       httpAgent: this.httpAgent,
     });
+
+        // @aakatev Call in constructor to debug axious requests
+        this.axiosInstance.interceptors.request.use(request => {
+          console.log('Starting Request', request.url)
+          return request;
+        });
+        this.axiosInstance.interceptors.response.use(response => {
+          console.log('Response:', response.headers)
+          return response;
+        })
 
     this.httpClient = new HttpService(this.axiosInstance);
   }
