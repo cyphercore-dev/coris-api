@@ -1,28 +1,39 @@
-# Coris API
+# Coris API (Microservices)
+
+Set of microservices to cache data for Coris Blockchain Explorer.
 
 ### Features
 
 - Docker image is based on Alpine and Node 12
 
-- Build with stripped down version of [NestJS](https://www.npmjs.com/package/@nestjs/core). 
+- Build in NodeJS
 
-- Supports TypeScript, and ES6. 
-
-- Utilizes Express as API, and Redis as storage solution.  
+- Utilize Redis as storage service.
 
 ### Running
 
-Prerequisites are docker and docker-compose. In repo root directory, run <code>docker-compose up</code>. This will launch node and redis in the same container.  Endpoint for queueng current validators is <code>http://localhost:3000/validators</code>.
+First you need docker and docker-compose to be installed. 
 
+Configuire rpc in <code>/services/validators/lib.js</code> to point to your giaia light client endpoint. For example, if you run service on same host as the client, your config might look as following:
 
-API allows to initialize redis with custom list of validators. Script is located in <code>/src/app/services/init</code>.
+```javascript
+const MAX_CONCUR = 15;
+const RPC_URL = 'localhost';
+const RPC_PORT = 1317;
+```
 
-### TODO
+In the other case, you host actua url and port. 
 
-- FIX BUGS!!!
+Data from redis is available at the following endpoints:
 
-- Add caching layer to reddis, or at least utilize NestJS default caching.
+- <code>localhost:3000/api/validators</code>
 
-- Requests/response processing pool might allow increase number of cuncurrent requests
+### Turn of redis persistence
 
-- Configure redis (persistent storage would be nice)
+Using redis-cli:
+
+```bash
+$ redis-cli
+
+$ config set save ""
+```
